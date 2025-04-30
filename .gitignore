@@ -1,0 +1,10 @@
+data
+dataset
+logs
+runs
+whole_model
+checkpoints
+performance
+temp.*
+slurm.*
+__pycache__
