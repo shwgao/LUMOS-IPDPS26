@@ -4,13 +4,13 @@ LUMOS is a lightweight and effective L0 regularization-based pruning framework f
 
 ## Features
 
-- **L0 Regularization**: Automatically learns which weights to keep and which to prune.
+- **L0 Regularization**: Automatically learns which weights to keep and which to prune. As well as can be used for the input features.
 - **Structural Pruning**: Supports structural pruning for Linear, Conv2d, and Conv3d layers.
 - **Sparsity Learning**: Trains the model to be sparse from the start or fine-tunes a pretrained model.
 - **Modular Design**: Separated models, data loaders, and pruner logic.
 - **Early-Stop by Target Prune Ratio**: Stops L0 training as soon as a target sparsity is reached, then fine-tunes — preventing accuracy collapse caused by over-pruning before recovery.
 
-## Supported Models
+## Example Models
 
 - **Fluid**: MLP for fluid simulation data.
 - **CosmoFlow**: 3D CNN for cosmological parameter estimation.
@@ -57,7 +57,7 @@ Key arguments:
 - `--target-prune-ratio`: *(Recommended)* Stop L0 training early when the hard-gate prune ratio reaches this value, then immediately fine-tune. Prevents accuracy collapse. Set to `0.0` to disable (default).
 - `--data-root`: Path to dataset directory (defaults to `./data` or cluster paths).
 
-#### Recommended MNIST recipe (≥40% sparsity, ≥95% accuracy)
+#### Demo MNIST recipe (≥40% sparsity, ≥95% accuracy)
 
 The L0 pruner gates **input features** of each Linear layer, so the first layer
 gates the raw 784-pixel inputs — meaning pruned pixels are never used by the
@@ -70,10 +70,10 @@ python train.py \
   --lamba 0.002 --gate-lr-scale 1.0 \
   --droprate-init 0.5 --finetune-epochs 30 \
   --target-prune-ratio 0.40 \
-  --output-dir ./output/mnist_run2
+  --output-dir ./output/mnist_run
 ```
 
-**Result (run `mnist_run2`, 2026-05-23):**
+**Result:**
 
 | Metric | Target | Achieved |
 |--------|--------|----------|
@@ -85,7 +85,7 @@ python train.py \
 - Fine-tuning (30 epochs): val acc stable at ~98.25%.
 - `best_model_finetuned.pth` checkpoint: 394 of 784 input pixel columns are zeroed in `layers.0.weight` (first hidden layer). The network never reads those pixels.
 
-#### Recommended CIFAR-10 recipe (≥50% sparsity, ≥85% accuracy)
+#### Demo CIFAR-10 recipe (≥50% sparsity, ≥85% accuracy)
 
 ```bash
 python train.py \
@@ -97,7 +97,7 @@ python train.py \
   --output-dir ./output/run_cifar10
 ```
 
-**Result (run `run_2x_earlystop`, 2026-05-22):**
+**Result:**
 
 | Metric | Target | Achieved |
 |--------|--------|----------|
@@ -119,7 +119,7 @@ python test.py --dataset cifar10 --model auto \
 
 # MNIST
 python test.py --dataset mnist --model auto \
-  --checkpoint ./output/mnist_run2/best_model_finetuned.pth \
+  --checkpoint ./output/mnist_run/best_model_finetuned.pth \
   --output-dir ./output/mnist_pruned
 ```
 
@@ -128,12 +128,6 @@ This will:
 2. Permanently prune the layers based on the learned gates.
 3. Report FLOPs/Params reduction and performance (Accuracy or Loss).
 4. Save the structurally pruned model.
-
-## How Early-Stop Works
-
-During L0 training, validation uses hard (binarized) gates. As L0 pressure pushes gate parameters negative, hard-gate val accuracy can collapse to near-random (10–20%) while soft-gate train accuracy remains high (~88%). If L0 training continues for too long, fine-tuning cannot recover accuracy in a reasonable number of epochs.
-
-**Solution**: use `--target-prune-ratio`. The training loop checks the hard-gate prune ratio each epoch. Once it meets or exceeds the target, `merge_mask()` is called immediately to binarize the gates into weights, and fine-tuning begins. At exactly 50% sparsity, the remaining 50% of active channels retain well-trained weights, allowing fast recovery.
 
 ## Project Structure
 
